@@ -1,0 +1,51 @@
+# Sobe tudo com um comando:
+#
+#     docker compose up --build
+#
+# API em http://localhost:8000 (documentação em /docs), front em
+# http://localhost:5173, Postgres em 5432.
+
+services:
+  banco:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: painel
+      POSTGRES_PASSWORD: painel
+      POSTGRES_DB: painel
+    ports: ["5432:5432"]
+    volumes: ["dados_postgres:/var/lib/postgresql/data"]
+    healthcheck:
+      # A API só sobe depois que o banco aceita conexão — sem isto o primeiro
+      # `docker compose up` falha na migração e parece defeito de código.
+      test: ["CMD-SHELL", "pg_isready -U painel -d painel"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    depends_on:
+      banco: { condition: service_healthy }
+    environment:
+      DATABASE_URL: postgresql+psycopg://painel:painel@banco:5432/painel
+      SEGREDO_JWT: desenvolvimento-apenas-troque-em-producao-com-token-urlsafe
+      ORIGENS_LIBERADAS: http://localhost:5173
+    command: >
+      sh -c "alembic upgrade head &&
+             python -m scripts.semear &&
+             uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    ports: ["8000:8000"]
+    volumes: [".:/app"]
+
+  web:
+    image: node:22-alpine
+    working_dir: /web
+    depends_on: [api]
+    environment:
+      VITE_API: http://localhost:8000
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0"
+    ports: ["5173:5173"]
+    volumes: ["./web:/web", "/web/node_modules"]
+
+volumes:
+  dados_postgres:
