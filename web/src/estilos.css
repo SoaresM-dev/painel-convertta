@@ -1,0 +1,93 @@
+:root {
+  --fundo: #0f1115;
+  --superficie: #171a21;
+  --borda: #262b36;
+  --texto: #e6e9ef;
+  --sutil: #8b93a5;
+  --destaque: #22d3ee;
+  --erro: #f87171;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fundo);
+  color: var(--texto);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+.sutil { color: var(--sutil); font-size: 0.85rem; }
+.erro { color: var(--erro); font-size: 0.9rem; }
+
+/* --- login --- */
+.tela-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+
+.cartao {
+  width: min(360px, 100%);
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 28px;
+  display: grid;
+  gap: 14px;
+}
+
+label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--sutil); }
+
+input {
+  background: var(--fundo);
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px 12px;
+  color: var(--texto);
+  font: inherit;
+}
+input:focus { outline: 2px solid var(--destaque); outline-offset: 1px; }
+
+button {
+  background: var(--destaque);
+  color: #06202a;
+  border: 0;
+  border-radius: 8px;
+  padding: 11px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+button:disabled { opacity: 0.6; cursor: progress; }
+button.secundario { background: transparent; color: var(--sutil); border: 1px solid var(--borda); }
+
+.demo { margin: 0; text-align: center; }
+
+/* --- painel --- */
+.painel { max-width: 1000px; margin: 0 auto; padding: 32px 24px 64px; }
+
+.painel header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+
+.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+
+.numero {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+  padding: 18px;
+  display: grid;
+  gap: 4px;
+}
+.numero .rotulo { color: var(--sutil); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.numero strong { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
+
+table { width: 100%; border-collapse: collapse; background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
+th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--borda); }
+th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sutil); font-weight: 600; }
+tbody tr:last-child td { border-bottom: 0; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+
+.rodape { margin-top: 16px; }
+
+@media (max-width: 640px) {
+  table { display: block; overflow-x: auto; }
+}
