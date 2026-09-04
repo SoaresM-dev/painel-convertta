@@ -59,9 +59,11 @@ def test_resumo_vazio(autenticado: TestClient):
     corpo = autenticado.get("/api/painel/resumo").json()
     assert corpo == {
         "investimento_centavos": 0,
+        "campanhas": 0,
         "leads": 0,
         "leads_ganhos": 0,
         "custo_por_lead_centavos": None,
+        "taxa_conversao": None,
         "linhas": [],
     }
 

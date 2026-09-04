@@ -108,7 +108,90 @@ class LinhaResumo(BaseModel):
 
 class Resumo(BaseModel):
     investimento_centavos: int
+    campanhas: int
     leads: int
     leads_ganhos: int
     custo_por_lead_centavos: int | None
+    taxa_conversao: float | None
     linhas: list[LinhaResumo]
+
+
+class LinhaCanal(BaseModel):
+    """Google x Meta. O canal sempre esteve na tabela `campanhas` e nunca
+    chegou à tela — e é a comparação que uma agência de tráfego pago olha
+    primeiro: qual dos dois está entregando lead mais barato."""
+
+    canal: Canal
+    campanhas: int
+    investimento_centavos: int
+    leads: int
+    leads_ganhos: int
+    custo_por_lead_centavos: int | None
+    taxa_conversao: float | None
+
+
+class EstagioFunil(BaseModel):
+    status: StatusLead
+    leads: int
+
+
+class Funil(BaseModel):
+    """Distribuição por estágio — **não** um funil cumulativo.
+
+    O banco guarda o status *atual* do lead, não o histórico por onde ele
+    passou. Um funil cumulativo de verdade diria "82 chegaram a contatado",
+    contando também quem já avançou para qualificado e ganho; esse número não
+    existe aqui e inventá-lo seria mentir com aparência de relatório. O que
+    sai é o que se pode provar: quantos leads estão em cada estágio agora.
+    """
+
+    total: int
+    estagios: list[EstagioFunil]
+
+
+class PontoSerie(BaseModel):
+    dia: date
+    leads: int
+    leads_ganhos: int
+
+
+class Serie(BaseModel):
+    """Dias sem lead vêm com zero, não vêm ausentes.
+
+    Omitir o dia vazio faz a linha do gráfico pular o buraco e ligar dois
+    pontos distantes como se fossem vizinhos — a queda desaparece do desenho
+    justamente quando ela é a informação.
+    """
+
+    pontos: list[PontoSerie]
+
+
+class CampanhaDetalhe(BaseModel):
+    id: int
+    nome: str
+    canal: Canal
+    investimento_centavos: int
+    inicio: date
+    fim: date | None
+    leads: int
+    leads_ganhos: int
+    custo_por_lead_centavos: int | None
+    taxa_conversao: float | None
+
+
+class LeadRecente(BaseModel):
+    id: int
+    nome: str
+    email: str | None
+    telefone: str | None
+    status: StatusLead
+    criado_em: datetime
+    campanha_id: int
+    campanha: str
+
+
+class DetalheCliente(BaseModel):
+    cliente_id: int
+    cliente: str
+    campanhas: list[CampanhaDetalhe]
+    leads_recentes: list[LeadRecente]
