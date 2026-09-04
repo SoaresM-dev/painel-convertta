@@ -1,0 +1,15 @@
+# O que não tem por que entrar na imagem da API.
+.git
+.github
+web
+tests
+migrations/__pycache__
+**/__pycache__
+*.pyc
+.venv
+.pytest_cache
+.ruff_cache
+*.db
+.env
+README.md
+docker-compose.yml
