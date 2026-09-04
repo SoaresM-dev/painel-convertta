@@ -175,6 +175,16 @@ segundos de espera o painel para de dizer "carregando" e passa a explicar o que
 está acontecendo — sem essa frase, quem abre o link acha que quebrou e fecha a
 aba, e o deploy inteiro deixa de valer alguma coisa.
 
+**A semente converge, não só evita duplicata.** Ela era idempotente *por
+existência* — "esta campanha já existe? então pula" —, o que protege contra
+duplicata e, sem querer, impede correção: mudar o conteúdo da semente nunca
+alcança um banco já semeado. Foi exatamente o que aconteceu no primeiro deploy
+depois de os leads ganharem data: o código subiu, a produção continuou com os
+294 leads no mesmo instante, e o gráfico no ar era um pico vertical de um dia
+só. Agora há uma versão gravada no banco; quando o número muda, os clientes de
+demonstração são refeitos no boot seguinte — e só eles, porque a demo é pública
+e tem cadastro na tela.
+
 **A semente tem tempo e tem perda.** Os leads são espalhados pelos dias da
 campanha em vez de nascerem todos no instante do seed — que viraria um pico
 vertical único no gráfico — e a distribuição de status inclui `perdido`, senão o
@@ -197,7 +207,7 @@ justamente a distinção que este painel faz questão de mostrar.
 pytest
 ```
 
-92 testes. Cada um recebe um banco vazio, então o resultado não depende da ordem
+96 testes. Cada um recebe um banco vazio, então o resultado não depende da ordem
 de execução — a categoria de defeito mais cara de diagnosticar numa suíte.
 
 **A CI roda a mesma suíte contra Postgres 17**, em serviço próprio, e verifica que
@@ -222,7 +232,7 @@ app/
 
 migrations/          Alembic — único dono do esquema
 scripts/semear.py    conta demo e dados plausíveis, idempotente
-tests/               92 testes
+tests/               96 testes
 web/src/             React + TypeScript (strict) + Vite
 ├── tipos.ts         o contrato da API, escrito uma vez
 ├── api.ts           o único lugar que fala com o back-end

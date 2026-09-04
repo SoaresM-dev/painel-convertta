@@ -4,6 +4,12 @@
 vazia não prova nada. Este script deixa o painel com números logo na primeira
 abertura, e é idempotente: rodar duas vezes não duplica nada.
 
+**A semente converge, não só evita duplicata.** `VERSAO_SEMENTE` é gravada no
+banco; quando o número muda, os clientes de demonstração são refeitos. Sem isso
+a idempotência por existência — "esta campanha já existe? então pula" — protege
+contra duplicata e impede correção: a produção fica presa na primeira versão do
+dado para sempre.
+
 **Os leads têm data e têm perda.** A primeira versão deixava o `criado_em` cair
 no `default=agora()` e nunca gerava `perdido`. Nenhuma das duas coisas aparecia
 na tela de então — mas a série temporal viraria um pico vertical no instante do
@@ -18,10 +24,17 @@ import random
 from datetime import UTC, date, datetime, time, timedelta
 
 from sqlalchemy import inspect, select
+from sqlalchemy.orm import Session
 
 from app.db import CriarSessao, engine
-from app.models import Campanha, Canal, Cliente, Lead, StatusLead, Usuario, agora
+from app.models import Campanha, Canal, Cliente, Lead, Semente, StatusLead, Usuario, agora
 from app.seguranca import cifrar_senha
+
+# Subir este número faz o próximo boot refazer os dados de demonstração.
+# A idempotência por existência sozinha nunca corrige o que já está no banco:
+# foi assim que a produção ficou com os leads todos no mesmo instante e sem
+# nenhum `perdido`, mesmo depois de a semente ser consertada no código.
+VERSAO_SEMENTE = 2
 
 EMAIL_DEMO = "demo@convertta.com.br"
 SENHA_DEMO = "demo1234"
@@ -88,6 +101,38 @@ def data_do_lead(
     return min(momento, agora())
 
 
+def versao_no_banco(sessao: Session) -> int:
+    """Zero quando nunca foi semeado — que é o que um banco novo deve reportar."""
+    marca = sessao.scalar(select(Semente).order_by(Semente.id.desc()).limit(1))
+    return 0 if marca is None else marca.versao
+
+
+def limpar_demo(sessao: Session) -> int:
+    """Apaga só os clientes do `CLIENTES`; campanhas e leads somem por cascata.
+
+    Filtrar pelo nome não é preciosismo: a demo é pública e tem cadastro na
+    tela, então um visitante pode ter criado cliente próprio. Apagar a tabela
+    inteira levaria junto o que não é nosso.
+    """
+    clientes = list(sessao.scalars(select(Cliente).where(Cliente.nome.in_(CLIENTES))))
+    for cliente in clientes:
+        sessao.delete(cliente)
+    return len(clientes)
+
+
+def marcar(sessao: Session) -> None:
+    """Uma linha só, sempre reescrita: isto é um marcador, não um histórico."""
+    for antiga in sessao.scalars(select(Semente)):
+        sessao.delete(antiga)
+    sessao.flush()
+    sessao.add(Semente(versao=VERSAO_SEMENTE))
+    # O flush final não é enfeite: a sessão do projeto roda com `autoflush`
+    # desligado, e sem ele uma segunda chamada não enxergaria a linha recém-
+    # adicionada — deixaria duas marcas, e aí `versao_no_banco` passa a
+    # depender da ordem de leitura.
+    sessao.flush()
+
+
 def semear() -> None:
     # De propósito **não** cria tabela. Quem cria esquema é o Alembic, e só
     # ele: dois donos do esquema é como se chega em produção com uma coluna
@@ -98,6 +143,13 @@ def semear() -> None:
     aleatorio = random.Random(42)  # semente fixa: a demo é sempre a mesma
 
     with CriarSessao() as sessao:
+        antiga = versao_no_banco(sessao)
+        if antiga != VERSAO_SEMENTE:
+            removidos = limpar_demo(sessao)
+            sessao.flush()
+            if removidos:
+                print(f"Semente v{antiga} -> v{VERSAO_SEMENTE}: {removidos} clientes refeitos.")
+
         if sessao.scalar(select(Usuario).where(Usuario.email == EMAIL_DEMO)) is None:
             sessao.add(
                 Usuario(email=EMAIL_DEMO, nome="Conta demo", senha_hash=cifrar_senha(SENHA_DEMO))
@@ -145,9 +197,10 @@ def semear() -> None:
                         )
                     )
 
+        marcar(sessao)
         sessao.commit()
 
-    print(f"Semeado. Entre com {EMAIL_DEMO} / {SENHA_DEMO}")
+    print(f"Semeado (v{VERSAO_SEMENTE}). Entre com {EMAIL_DEMO} / {SENHA_DEMO}")
 
 
 if __name__ == "__main__":

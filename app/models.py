@@ -39,6 +39,28 @@ class StatusLead(enum.StrEnum):
     PERDIDO = "perdido"
 
 
+class Semente(Base):
+    """Qual versão dos dados de demonstração está neste banco.
+
+    **Não é uma quarta entidade do domínio** — é escrituração, e por isso não
+    quebra o escopo travado acima. Existe porque a semente era idempotente por
+    existência ("esta campanha já existe? então pula"), e idempotência assim
+    protege contra duplicata mas impede correção: mudar o conteúdo da semente
+    nunca alcançava um banco já semeado.
+
+    Foi o que aconteceu quando os leads ganharam data e o estágio `perdido` —
+    o código subiu, a produção continuou com o dado velho, e o gráfico no ar
+    era um pico vertical de um dia só. Com a marca, a semente deixa de ser
+    "não duplica" e passa a ser "converge para a definição atual".
+    """
+
+    __tablename__ = "semente"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    versao: Mapped[int] = mapped_column(Integer)
+    aplicada_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=agora)
+
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 

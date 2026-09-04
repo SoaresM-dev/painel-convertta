@@ -12,9 +12,19 @@ from datetime import date, timedelta
 from random import Random
 
 import pytest
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
-from app.models import StatusLead
-from scripts.semear import CLIENTES, data_do_lead, status_do_lead
+from app.models import Campanha, Canal, Cliente, Lead, Semente, StatusLead
+from scripts.semear import (
+    CLIENTES,
+    VERSAO_SEMENTE,
+    data_do_lead,
+    limpar_demo,
+    marcar,
+    status_do_lead,
+    versao_no_banco,
+)
 
 HOJE = date(2026, 9, 4)
 
@@ -90,3 +100,59 @@ def test_campanha_que_comeca_hoje_nao_estoura():
     """`hoje - inicio` é zero, e todos os leads caem no mesmo dia — sem erro."""
     datas = [data_do_lead(i, 5, HOJE, HOJE, Random(42)).date() for i in range(5)]
     assert datas == [HOJE] * 5
+
+
+# --- a marca de versão ---
+
+def test_banco_novo_reporta_versao_zero(sessao: Session):
+    """Zero é o que um banco nunca semeado deve dizer — e é o que faz o
+    primeiro boot semear em vez de achar que já está em dia."""
+    assert versao_no_banco(sessao) == 0
+
+
+def test_marcar_deixa_uma_linha_so(sessao: Session):
+    """Isto é um marcador, não um histórico: duas marcas com números
+    diferentes fariam `versao_no_banco` depender da ordem de leitura."""
+    marcar(sessao)
+    marcar(sessao)
+    sessao.commit()
+    assert sessao.scalars(select(Semente)).all().__len__() == 1
+    assert versao_no_banco(sessao) == VERSAO_SEMENTE
+
+
+def test_limpar_demo_leva_campanhas_e_leads_junto(sessao: Session):
+    cliente = Cliente(nome=next(iter(CLIENTES)))
+    sessao.add(cliente)
+    sessao.flush()
+    campanha = Campanha(
+        cliente_id=cliente.id,
+        nome="Campanha",
+        canal=Canal.GOOGLE_ADS,
+        investimento_centavos=1000,
+        inicio=date(2026, 8, 1),
+    )
+    sessao.add(campanha)
+    sessao.flush()
+    sessao.add(Lead(campanha_id=campanha.id, nome="Lead", status=StatusLead.NOVO))
+    sessao.commit()
+
+    assert limpar_demo(sessao) == 1
+    sessao.commit()
+
+    assert sessao.scalars(select(Cliente)).all() == []
+    assert sessao.scalars(select(Campanha)).all() == [], "campanha órfã sobreviveu"
+    assert sessao.scalars(select(Lead)).all() == [], "lead órfão sobreviveu"
+
+
+def test_limpar_demo_nao_toca_no_que_o_visitante_criou(sessao: Session):
+    """A demo é pública e tem cadastro na tela. Refazer os dados de exemplo não
+    pode levar junto o cliente que um visitante cadastrou."""
+    sessao.add(Cliente(nome=next(iter(CLIENTES))))
+    sessao.add(Cliente(nome="Cliente de um visitante"))
+    sessao.commit()
+
+    assert limpar_demo(sessao) == 1
+    sessao.commit()
+
+    restantes = [c.nome for c in sessao.scalars(select(Cliente))]
+    assert restantes == ["Cliente de um visitante"]
