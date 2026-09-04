@@ -13,9 +13,7 @@ o painel do Google Ads, o do Meta e uma planilha de leads — e a pergunta que o
 cliente sempre faz, *"quanto está me custando cada lead?"*, exigia abrir os três e
 fazer conta à mão. Este painel responde essa pergunta numa tela.
 
-<!-- DEMONSTRAÇÃO — grave o GIF e descomente:
-![Login e painel com os números da conta demo](docs/demo.gif)
--->
+![Login, painel com os números da conta demo, troca de período e o detalhe de um cliente](docs/demo.gif)
 
 **Conta demo:** `demo@convertta.com.br` / `demo1234` — já vem preenchida no
 formulário. O banco é semeado com quatro clientes e quase 300 leads, então a
