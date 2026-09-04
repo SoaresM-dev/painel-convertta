@@ -70,8 +70,95 @@ export interface LinhaResumo {
 
 export interface Resumo {
   investimento_centavos: number;
+  campanhas: number;
   leads: number;
   leads_ganhos: number;
   custo_por_lead_centavos: number | null;
+  taxa_conversao: number | null;
   linhas: LinhaResumo[];
 }
+
+export interface LinhaCanal {
+  canal: Canal;
+  campanhas: number;
+  investimento_centavos: number;
+  leads: number;
+  leads_ganhos: number;
+  custo_por_lead_centavos: number | null;
+  taxa_conversao: number | null;
+}
+
+export interface EstagioFunil {
+  status: StatusLead;
+  leads: number;
+}
+
+export interface Funil {
+  total: number;
+  estagios: EstagioFunil[];
+}
+
+export interface PontoSerie {
+  dia: string;
+  leads: number;
+  leads_ganhos: number;
+}
+
+export interface Serie {
+  pontos: PontoSerie[];
+}
+
+export interface CampanhaDetalhe {
+  id: number;
+  nome: string;
+  canal: Canal;
+  investimento_centavos: number;
+  inicio: string;
+  fim: string | null;
+  leads: number;
+  leads_ganhos: number;
+  custo_por_lead_centavos: number | null;
+  taxa_conversao: number | null;
+}
+
+export interface LeadRecente {
+  id: number;
+  nome: string;
+  email: string | null;
+  telefone: string | null;
+  status: StatusLead;
+  criado_em: string;
+  campanha_id: number;
+  campanha: string;
+}
+
+export interface DetalheCliente {
+  cliente_id: number;
+  cliente: string;
+  campanhas: CampanhaDetalhe[];
+  leads_recentes: LeadRecente[];
+}
+
+/* Tudo o que o painel carrega de uma vez. Um `Promise.all` no lugar de quatro
+ * carregamentos independentes: no plano gratuito do Render a primeira chamada
+ * paga o despertar do serviço, e quatro espinhas de "carregando" acendendo em
+ * momentos diferentes fazem a tela parecer quebrada. */
+export interface Visao {
+  resumo: Resumo;
+  canais: LinhaCanal[];
+  funil: Funil;
+  serie: Serie;
+}
+
+export const ROTULO_CANAL: Record<Canal, string> = {
+  google_ads: "Google Ads",
+  meta_ads: "Meta Ads",
+};
+
+export const ROTULO_STATUS: Record<StatusLead, string> = {
+  novo: "Novo",
+  contatado: "Contatado",
+  qualificado: "Qualificado",
+  ganho: "Ganho",
+  perdido: "Perdido",
+};

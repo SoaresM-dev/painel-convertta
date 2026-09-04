@@ -21,6 +21,20 @@ fazer conta à mão. Este painel responde essa pergunta numa tela.
 formulário. O banco é semeado com quatro clientes e quase 300 leads, então a
 primeira tela já tem número.
 
+## O que o painel mostra
+
+Cinco números no topo — investimento, campanhas, leads, custo por lead e taxa de
+conversão — recortados por período (7, 30, 90 dias ou tudo). Abaixo deles:
+
+- **Leads por dia**, com a linha de ganhos sobreposta
+- **Investimento por canal**, Google Ads contra Meta Ads, com selo no que está
+  entregando lead mais barato
+- **Onde os leads estão**, a distribuição pelos cinco estágios
+- **Tabela por cliente**, ordenável por qualquer coluna; clicar no nome abre
+  campanha a campanha e os últimos leads, com o status editável na própria linha
+
+Cliente, campanha e lead se cadastram pela tela.
+
 ## Ver no ar
 
 **[painel-convertta-web.onrender.com](https://painel-convertta-web.onrender.com)**
@@ -138,6 +152,38 @@ rota trata o `IntegrityError` e devolve 409.
 `create_all`: dois donos do esquema é como se chega em produção com uma coluna
 que existe na máquina de quem escreveu e não existe no servidor.
 
+**O período recorta os leads e rateia o investimento.** Contar a verba inteira
+de uma campanha de 90 dias dentro de um recorte de 7 dias faria o custo por lead
+da semana parecer treze vezes maior do que é. O rateio é proporcional aos dias de
+sobreposição: erra por pouco e na direção certa, enquanto não ratear erra por uma
+ordem de grandeza. Foi ele que tirou a agregação por cliente do SQL e a levou
+para Python — aritmética de data se escreve diferente no SQLite e no Postgres, e
+a suíte roda nos dois. A consulta continua sendo uma só.
+
+**O funil é distribuição por estágio, não funil cumulativo.** O banco guarda o
+status *atual* do lead, não por onde ele passou. Um funil cumulativo diria "82
+chegaram a contatado", contando também quem já avançou — número que não existe
+aqui, e que inventar seria mentir com aparência de relatório.
+
+**Gráficos em SVG escrito à mão.** Recharts resolveria em menos linhas e custaria
+~100 kB comprimidos, mais que todo o resto do bundle junto, num projeto de três
+entidades e três gráficos. Zoom, pan e eixos configuráveis não são usados por
+nenhuma destas telas. O `viewBox` fixo com `width: 100%` deixa os três
+responsivos sem medir nada em JavaScript.
+
+**A tela de carregando é a que o recrutador vê primeiro, e por mais tempo.** No
+plano gratuito o serviço hiberna, e o despertar leva até um minuto. Depois de três
+segundos de espera o painel para de dizer "carregando" e passa a explicar o que
+está acontecendo — sem essa frase, quem abre o link acha que quebrou e fecha a
+aba, e o deploy inteiro deixa de valer alguma coisa.
+
+**A semente tem tempo e tem perda.** Os leads são espalhados pelos dias da
+campanha em vez de nascerem todos no instante do seed — que viraria um pico
+vertical único no gráfico — e a distribuição de status inclui `perdido`, senão o
+funil teria um degrau sempre vazio, que se lê como defeito de código e não como
+retrato do processo. A data cresce junto com o índice, então o que fechou fechou
+faz tempo e o que é novo chegou esta semana, sem sorteio extra.
+
 **TypeScript em modo estrito, não TypeScript de fachada.** Com `strict` e
 `noUncheckedIndexedAccess` desligados sobra a sintaxe e some a verificação —
 `any` implícito em toda parte, e o compilador deixa passar exatamente o que ele
@@ -153,7 +199,7 @@ justamente a distinção que este painel faz questão de mostrar.
 pytest
 ```
 
-43 testes. Cada um recebe um banco vazio, então o resultado não depende da ordem
+92 testes. Cada um recebe um banco vazio, então o resultado não depende da ordem
 de execução — a categoria de defeito mais cara de diagnosticar numa suíte.
 
 **A CI roda a mesma suíte contra Postgres 17**, em serviço próprio, e verifica que
@@ -178,10 +224,15 @@ app/
 
 migrations/          Alembic — único dono do esquema
 scripts/semear.py    conta demo e dados plausíveis, idempotente
-tests/               43 testes
-web/                 React + TypeScript (strict) + Vite
-├── src/tipos.ts     o contrato da API, escrito uma vez
-└── src/api.ts       o único lugar que fala com o back-end
+tests/               92 testes
+web/src/             React + TypeScript (strict) + Vite
+├── tipos.ts         o contrato da API, escrito uma vez
+├── api.ts           o único lugar que fala com o back-end
+├── Painel.tsx       filtro de período, números, gráficos e tabela
+├── graficos.tsx     série, canais e funil — SVG à mão, sem biblioteca
+├── DetalheCliente.tsx  a gaveta que abre ao clicar num cliente
+├── formularios.tsx  cadastro de cliente, campanha e lead
+└── estados.tsx      carregando, vazio, erro e o aviso de despertar
 ```
 
 ## Deploy

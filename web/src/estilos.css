@@ -1,11 +1,27 @@
+/* Um arquivo só, sem framework.
+ *
+ * Tailwind ou uma biblioteca de componentes resolveriam isto com menos CSS
+ * escrito — e trariam um passo de build, uma configuração e um vocabulário
+ * novo para um painel de quatro telas. A paleta segue a identidade escura da
+ * Convertta: fundo quase preto, superfície azulada, ciano como destaque, e
+ * verde só onde ele significa dinheiro entrando.
+ */
+
 :root {
   --fundo: #0f1115;
   --superficie: #171a21;
+  --superficie-alta: #1d212a;
   --borda: #262b36;
+  --borda-clara: #333947;
   --texto: #e6e9ef;
   --sutil: #8b93a5;
   --destaque: #22d3ee;
+  --sucesso: #34d399;
+  --alerta: #fbbf24;
   --erro: #f87171;
+  --google: #60a5fa;
+  --meta: #c084fc;
+  --raio: 12px;
   color-scheme: dark;
 }
 
@@ -16,13 +32,46 @@ body {
   background: var(--fundo);
   color: var(--texto);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: 0.82rem; margin: 0 0 16px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sutil); font-weight: 600; }
+h3 { font-size: 0.82rem; margin: 24px 0 10px; text-transform: uppercase; letter-spacing: 0.07em; color: var(--sutil); font-weight: 600; }
+p { margin: 0; }
+
 .sutil { color: var(--sutil); font-size: 0.85rem; }
 .erro { color: var(--erro); font-size: 0.9rem; }
+.num { text-align: right; font-variant-numeric: tabular-nums; }
+.bloco { display: block; }
+
+/* --- botões --- */
+
+button {
+  background: var(--destaque);
+  color: #06202a;
+  border: 0;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.15s, background 0.15s, border-color 0.15s;
+}
+button:hover:not(:disabled) { filter: brightness(1.08); }
+button:disabled { opacity: 0.55; cursor: not-allowed; }
+button:focus-visible { outline: 2px solid var(--destaque); outline-offset: 2px; }
+
+button.secundario {
+  background: transparent;
+  color: var(--sutil);
+  border: 1px solid var(--borda);
+  font-weight: 500;
+}
+button.secundario:hover:not(:disabled) { color: var(--texto); border-color: var(--borda-clara); filter: none; }
 
 /* --- login --- */
+
 .tela-login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
 
 .cartao {
@@ -37,57 +86,369 @@ h1 { font-size: 1.35rem; margin: 0; letter-spacing: -0.01em; }
 
 label { display: grid; gap: 6px; font-size: 0.85rem; color: var(--sutil); }
 
-input {
+input, select {
   background: var(--fundo);
   border: 1px solid var(--borda);
   border-radius: 8px;
   padding: 10px 12px;
   color: var(--texto);
   font: inherit;
+  width: 100%;
 }
-input:focus { outline: 2px solid var(--destaque); outline-offset: 1px; }
-
-button {
-  background: var(--destaque);
-  color: #06202a;
-  border: 0;
-  border-radius: 8px;
-  padding: 11px 16px;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-button:disabled { opacity: 0.6; cursor: progress; }
-button.secundario { background: transparent; color: var(--sutil); border: 1px solid var(--borda); }
+input:focus, select:focus { outline: 2px solid var(--destaque); outline-offset: 1px; }
 
 .demo { margin: 0; text-align: center; }
 
-/* --- painel --- */
-.painel { max-width: 1000px; margin: 0 auto; padding: 32px 24px 64px; }
+/* --- estrutura do painel --- */
 
-.painel header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+.painel { max-width: 1120px; margin: 0 auto; padding: 32px 24px 64px; }
 
-.numeros { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 28px; }
+.painel > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.acoes-topo { display: flex; gap: 8px; flex-shrink: 0; }
+
+/* O conteúdo esmaece durante uma recarga em vez de sumir. Trocar a tela por
+   um esqueleto a cada clique no filtro faria o painel piscar inteiro para
+   mudar cinco números. */
+.conteudo { transition: opacity 0.15s; }
+.conteudo.esmaecido { opacity: 0.5; pointer-events: none; }
+
+/* --- filtro de período --- */
+
+.filtro {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  margin-bottom: 24px;
+}
+.filtro .opcao {
+  background: transparent;
+  color: var(--sutil);
+  font-weight: 500;
+  font-size: 0.86rem;
+  padding: 6px 14px;
+  border-radius: 7px;
+}
+.filtro .opcao:hover:not(.ativa) { color: var(--texto); filter: none; }
+.filtro .opcao.ativa { background: var(--superficie-alta); color: var(--texto); }
+
+/* --- cartões de número --- */
+
+.numeros {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
 
 .numero {
   background: var(--superficie);
   border: 1px solid var(--borda);
-  border-radius: 12px;
+  border-radius: var(--raio);
+  padding: 16px 18px;
+  display: grid;
+  gap: 3px;
+  align-content: start;
+}
+.numero .rotulo { color: var(--sutil); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.numero strong { font-size: 1.5rem; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
+
+/* --- cartões de gráfico --- */
+
+.cartao-grafico {
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: var(--raio);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.lado-a-lado {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+}
+.lado-a-lado > * { margin-bottom: 0; }
+.lado-a-lado + .cartao-grafico { margin-top: 20px; }
+
+.vazio-grafico { padding: 32px 0; text-align: center; }
+
+/* --- série temporal --- */
+
+.grafico { position: relative; }
+.grafico .tela { width: 100%; height: auto; display: block; overflow: visible; }
+
+.grade { stroke: var(--borda); stroke-width: 1; }
+.marca { fill: var(--sutil); font-size: 11px; }
+.marca.fim { text-anchor: end; }
+
+.traco { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.traco.leads { stroke: var(--destaque); }
+.traco.ganhos { stroke: var(--sucesso); stroke-width: 1.5; stroke-dasharray: 3 3; }
+
+.guia { stroke: var(--borda-clara); stroke-width: 1; }
+.ponto.leads { fill: var(--destaque); stroke: var(--superficie); stroke-width: 2; }
+.ponto.ganhos { fill: var(--sucesso); stroke: var(--superficie); stroke-width: 2; }
+
+.dica {
+  position: absolute;
+  top: 0;
+  transform: translateX(10px);
+  background: var(--superficie-alta);
+  border: 1px solid var(--borda-clara);
+  border-radius: 8px;
+  padding: 8px 10px;
+  display: grid;
+  gap: 1px;
+  font-size: 0.82rem;
+  pointer-events: none;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.45);
+}
+/* Perto da borda direita a dica sairia da tela; do outro lado do cursor ela
+   cabe. */
+.dica[data-lado="esquerda"] { transform: translateX(calc(-100% - 10px)); }
+
+.legenda { display: flex; gap: 16px; margin-top: 8px; font-size: 0.8rem; color: var(--sutil); }
+.chave { display: inline-flex; align-items: center; gap: 6px; }
+.chave::before { content: ""; width: 12px; height: 2px; border-radius: 2px; }
+.chave.leads::before { background: var(--destaque); }
+.chave.ganhos::before { background: var(--sucesso); }
+
+/* --- canais --- */
+
+.canais { display: grid; gap: 20px; }
+.canal-topo { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 8px; }
+.canal-nome { font-weight: 600; font-size: 0.92rem; display: inline-flex; align-items: center; gap: 8px; }
+
+.selo {
+  font-style: normal;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sucesso);
+  background: rgb(52 211 153 / 0.12);
+  border: 1px solid rgb(52 211 153 / 0.3);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.barra { height: 8px; background: var(--fundo); border-radius: 999px; overflow: hidden; }
+.barra .preenchimento { height: 100%; border-radius: 999px; background: var(--destaque); transition: width 0.3s; }
+.barra .preenchimento.google_ads { background: var(--google); }
+.barra .preenchimento.meta_ads { background: var(--meta); }
+
+.canal-rodape { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+
+/* --- funil --- */
+
+.funil { display: grid; gap: 10px; }
+.degrau { display: grid; grid-template-columns: 96px 1fr 108px; align-items: center; gap: 12px; font-size: 0.88rem; }
+.degrau .barra { height: 20px; border-radius: 6px; }
+.degrau .barra .preenchimento { border-radius: 6px; background: var(--destaque); opacity: 0.55; }
+.degrau.qualificado .barra .preenchimento { opacity: 0.75; }
+.degrau.ganho .barra .preenchimento { background: var(--sucesso); opacity: 1; }
+.degrau.perdido .barra .preenchimento { background: var(--erro); opacity: 0.7; }
+.degrau-valor { font-size: 0.85rem; }
+.funil .nota { margin-top: 6px; line-height: 1.45; }
+
+/* --- tabela --- */
+
+table { width: 100%; border-collapse: collapse; }
+th, td { padding: 11px 12px; text-align: left; border-bottom: 1px solid var(--borda); }
+th { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sutil); font-weight: 600; padding: 0; }
+th button {
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  padding: 11px 12px;
+  width: 100%;
+  text-align: inherit;
+  border-radius: 0;
+}
+th.num button { text-align: right; }
+th button:hover { color: var(--texto); filter: none; }
+tbody tr:last-child td { border-bottom: 0; }
+tbody tr:hover { background: var(--superficie-alta); }
+
+button.link {
+  background: transparent;
+  color: var(--texto);
+  padding: 0;
+  font-weight: 500;
+  border-radius: 4px;
+  text-align: left;
+}
+button.link:hover { color: var(--destaque); filter: none; }
+
+.rodape { margin-top: 16px; line-height: 1.5; }
+
+/* --- diálogo e gaveta --- */
+
+.cortina {
+  position: fixed;
+  inset: 0;
+  background: rgb(0 0 0 / 0.6);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 10;
+  padding: 0;
+}
+
+.dialogo {
+  margin: auto;
+  width: min(520px, calc(100% - 32px));
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+  padding: 0 24px 24px;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+}
+.dialogo form { display: grid; gap: 14px; }
+.dialogo .par { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.dialogo .acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 6px; }
+
+.abas {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 16px 0;
+  position: sticky;
+  top: 0;
+  background: var(--superficie);
+  border-bottom: 1px solid var(--borda);
+  margin-bottom: 18px;
+}
+.aba { background: transparent; color: var(--sutil); font-weight: 500; padding: 7px 14px; border-radius: 8px; }
+.aba:hover:not(.ativa) { color: var(--texto); filter: none; }
+.aba.ativa { background: var(--superficie-alta); color: var(--texto); }
+
+.fechar {
+  margin-left: auto;
+  background: transparent;
+  color: var(--sutil);
+  font-size: 1.3rem;
+  line-height: 1;
+  padding: 4px 10px;
+}
+.fechar:hover { color: var(--texto); filter: none; }
+
+.gaveta {
+  width: min(680px, 100%);
+  background: var(--superficie);
+  border-left: 1px solid var(--borda);
+  padding: 24px;
+  overflow-y: auto;
+  animation: entrar 0.18s ease-out;
+}
+.gaveta > header { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.gaveta h2 { margin: 0; font-size: 1.15rem; text-transform: none; letter-spacing: -0.01em; color: var(--texto); }
+.gaveta h3:first-of-type { margin-top: 20px; }
+
+@keyframes entrar { from { transform: translateX(24px); opacity: 0; } }
+
+.lista-campanhas { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.lista-campanhas li { background: var(--superficie-alta); border: 1px solid var(--borda); border-radius: 10px; padding: 12px 14px; }
+.campanha-topo { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.campanha-numeros { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; }
+
+.etiqueta { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; border-radius: 999px; padding: 2px 9px; }
+.etiqueta.google_ads { color: var(--google); background: rgb(96 165 250 / 0.12); }
+.etiqueta.meta_ads { color: var(--meta); background: rgb(192 132 252 / 0.12); }
+
+table.leads td { vertical-align: top; }
+select.status { padding: 5px 8px; font-size: 0.82rem; width: auto; min-width: 120px; }
+select.status.ganho { color: var(--sucesso); }
+select.status.perdido { color: var(--erro); }
+
+/* --- estados --- */
+
+.despertar {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: rgb(251 191 36 / 0.08);
+  border: 1px solid rgb(251 191 36 / 0.25);
+  border-radius: var(--raio);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+.despertar p { margin-top: 2px; line-height: 1.45; }
+
+.girando {
+  width: 15px;
+  height: 15px;
+  border: 2px solid rgb(251 191 36 / 0.3);
+  border-top-color: var(--alerta);
+  border-radius: 50%;
+  animation: girar 0.8s linear infinite;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+@keyframes girar { to { transform: rotate(360deg); } }
+
+.aviso-erro {
+  background: rgb(248 113 113 / 0.08);
+  border: 1px solid rgb(248 113 113 / 0.25);
+  border-radius: var(--raio);
   padding: 18px;
   display: grid;
-  gap: 4px;
+  gap: 8px;
+  justify-items: start;
+  margin-bottom: 20px;
 }
-.numero .rotulo { color: var(--sutil); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.06em; }
-.numero strong { font-size: 1.6rem; font-variant-numeric: tabular-nums; }
 
-table { width: 100%; border-collapse: collapse; background: var(--superficie); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; }
-th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid var(--borda); }
-th { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--sutil); font-weight: 600; }
-tbody tr:last-child td { border-bottom: 0; }
-.num { text-align: right; font-variant-numeric: tabular-nums; }
+.vazio { padding: 36px 16px; text-align: center; display: grid; gap: 8px; justify-items: center; }
 
-.rodape { margin-top: 16px; }
+/* O esqueleto imita o formato final: quando os dados chegam, nada salta de
+   lugar. */
+.esqueleto .numero.fantasma { height: 86px; }
+.cartao-grafico.fantasma.alto { height: 258px; }
+.cartao-grafico.fantasma.medio { height: 220px; }
 
-@media (max-width: 640px) {
-  table { display: block; overflow-x: auto; }
+.fantasma {
+  background: linear-gradient(90deg, var(--superficie) 25%, var(--superficie-alta) 50%, var(--superficie) 75%);
+  background-size: 300% 100%;
+  animation: brilho 1.4s ease-in-out infinite;
+}
+@keyframes brilho { to { background-position: -300% 0; } }
+
+/* Movimento é acessório aqui. Para quem pediu ao sistema para reduzi-lo, o
+   esqueleto continua sendo um bloco cinza — e continua dizendo a mesma
+   coisa. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
+
+/* --- telas estreitas --- */
+
+@media (max-width: 720px) {
+  .painel { padding: 20px 14px 48px; }
+  .painel > header { flex-direction: column; align-items: stretch; }
+  .acoes-topo { justify-content: flex-start; }
+  .filtro { display: flex; width: 100%; }
+  .filtro .opcao { flex: 1; padding: 7px 4px; }
+  .dialogo .par { grid-template-columns: 1fr; }
+  .degrau { grid-template-columns: 84px 1fr; row-gap: 4px; }
+  .degrau-valor { grid-column: 2; text-align: left; }
+  .gaveta { padding: 18px 14px; }
+
+  /* A rolagem horizontal fica presa à tabela, e não ao corpo da página: o
+     painel inteiro deslizando de lado para caber uma coluna é o defeito
+     clássico de responsivo mal resolvido. */
+  .cartao-grafico:has(table) { overflow-x: auto; }
+  table { min-width: 560px; }
 }
