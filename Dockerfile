@@ -12,9 +12,10 @@ COPY . .
 
 EXPOSE 8000
 
-# Forma shell, e não a de lista, de propósito: é o que permite expandir
-# `${PORT}`. Todo PaaS injeta a porta por variável — Render, Railway, Fly,
-# Cloud Run — e um contêiner que escuta numa porta fixa passa no build, sobe
-# sem erro e nunca recebe requisição, porque o roteador do provedor bate numa
-# porta onde não há ninguém. O 8000 é só o padrão para rodar local.
-CMD sh -c "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+# O boot inteiro mora em `scripts/iniciar.sh` — migração, seed e uvicorn, nessa
+# ordem. Fica num arquivo, e não nesta linha, porque o campo de comando do
+# provedor não passa por shell e engole o `&&`; e a porta sai de lá expandida
+# de `$PORT`, que é como todo PaaS a injeta. Chamado por `sh` em vez de
+# `./scripts/iniciar.sh` porque o arquivo vem do Windows, onde não existe bit
+# de execução.
+CMD ["sh", "scripts/iniciar.sh"]
