@@ -21,11 +21,24 @@ fazer conta à mão. Este painel responde essa pergunta numa tela.
 formulário. O banco é semeado com quatro clientes e quase 300 leads, então a
 primeira tela já tem número.
 
+## Ver no ar
+
+**[painel-convertta-web.onrender.com](https://painel-convertta-web.onrender.com)**
+— a conta demo já vem preenchida, é só clicar em Entrar.
+[Documentação da API](https://painel-convertta-api.onrender.com/docs).
+
+Hospedado no plano gratuito do Render, que hiberna o serviço após 15 minutos
+ociosos. Se for o primeiro acesso em um tempo, a tela leva de 30 s a 1 min para
+abrir: o contêiner está subindo, aplicando as migrações e semeando o banco. Não
+quebrou.
+
 ## Subir em um comando
 
 ```bash
 docker compose up --build
 ```
+
+Depois disso, **na sua máquina**:
 
 | | |
 |---|---|
